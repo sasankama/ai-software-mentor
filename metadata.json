@@ -1,0 +1,6 @@
+{
+  "name": "AI Software Engineering Mentor",
+  "description": "A 6-month interactive learning platform powered by AI that guides beginners to become internship-ready software engineers through daily lessons, practice exercises, coding challenges, project tasks, and quizzes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
