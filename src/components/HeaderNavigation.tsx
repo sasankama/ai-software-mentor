@@ -1,5 +1,6 @@
 import React from 'react';
 import { useProgress } from '../context/ProgressContext';
+import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard,
   BookOpen,
@@ -13,15 +14,23 @@ import {
   Flame,
   Sun,
   Moon,
-  Bot
+  Bot,
+  CloudCheck,
+  User,
+  LogOut
 } from 'lucide-react';
 
 interface HeaderNavigationProps {
   onOpenAiMentorModal: () => void;
+  onOpenAuthModal: () => void;
 }
 
-export const HeaderNavigation: React.FC<HeaderNavigationProps> = ({ onOpenAiMentorModal }) => {
-  const { progress, activeTab, setActiveTab, toggleDarkMode } = useProgress();
+export const HeaderNavigation: React.FC<HeaderNavigationProps> = ({
+  onOpenAiMentorModal,
+  onOpenAuthModal
+}) => {
+  const { progress, activeTab, setActiveTab, toggleDarkMode, isCloudSynced } = useProgress();
+  const { user, logout } = useAuth();
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -60,7 +69,30 @@ export const HeaderNavigation: React.FC<HeaderNavigationProps> = ({ onOpenAiMent
           </div>
 
           {/* Quick Stats & Controls */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Cloud Sync / Auth Button */}
+            {user ? (
+              <div
+                onClick={() => setActiveTab('settings')}
+                className="cursor-pointer flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/90 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-semibold transition hover:bg-zinc-800"
+                title={`Cloud Synced as ${user.email}`}
+              >
+                <CloudCheck className="w-4 h-4 text-emerald-400" />
+                <span className="hidden md:inline max-w-[120px] truncate">{user.email?.split('@')[0]}</span>
+                <span className="inline md:hidden">Synced</span>
+              </div>
+            ) : (
+              <button
+                onClick={onOpenAuthModal}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-blue-500/40 text-blue-300 text-xs font-mono font-bold transition"
+                title="Sign in with Google or Email to save progress to Cloud"
+              >
+                <User className="w-4 h-4 text-blue-400" />
+                <span className="hidden sm:inline">Sign In / Sync</span>
+                <span className="inline sm:hidden">Sign In</span>
+              </button>
+            )}
+
             {/* Streak Counter Badge */}
             <div
               className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-amber-400 text-xs font-semibold"

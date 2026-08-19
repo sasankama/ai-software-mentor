@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { useAuth } from './AuthContext';
 import { UserProgress, DailyContent, DayCompletionStatus, Achievement } from '../types';
 import { generateDefaultDayContent, INITIAL_ACHIEVEMENTS } from '../data/roadmapData';
 
@@ -29,6 +32,8 @@ interface ProgressContextType {
   achievements: Achievement[];
   currentDailyContent: DailyContent | null;
   isLoadingDay: boolean;
+  isCloudSynced: boolean;
+  isSyncing: boolean;
   activeTab: string;
   setActiveTab: (tab: string) => void;
   fetchDayContent: (day: number) => Promise<void>;
@@ -49,6 +54,10 @@ interface ProgressContextType {
 const ProgressContext = createContext<ProgressContextType | undefined>(undefined);
 
 export const ProgressProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const [isCloudSynced, setIsCloudSynced] = useState<boolean>(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
   const [progress, setProgress] = useState<UserProgress>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -66,14 +75,70 @@ export const ProgressProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [isLoadingDay, setIsLoadingDay] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
 
-  // Save to localStorage on progress changes
+  // Load user progress from Firestore when authenticated
+  useEffect(() => {
+    if (!user) {
+      setIsCloudSynced(false);
+      return;
+    }
+
+    const loadUserProgress = async () => {
+      setIsSyncing(true);
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        const snapshot = await getDoc(userDocRef);
+
+        if (snapshot.exists()) {
+          const cloudData = snapshot.data() as UserProgress;
+          setProgress((prev) => ({
+            ...DEFAULT_PROGRESS,
+            ...cloudData,
+          }));
+        } else {
+          // New account or first login: populate Firestore with existing local progress
+          await setDoc(userDocRef, {
+            ...progress,
+            updatedAt: new Date().toISOString(),
+          }, { merge: true });
+        }
+        setIsCloudSynced(true);
+      } catch (err) {
+        console.error('Error loading user progress from Firestore:', err);
+        setIsCloudSynced(false);
+      } finally {
+        setIsSyncing(false);
+      }
+    };
+
+    loadUserProgress();
+  }, [user?.uid]);
+
+  // Save progress changes to localStorage and Firestore
   useEffect(() => {
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(progress));
     } catch (e) {
       console.error('Error saving progress to localStorage:', e);
     }
-  }, [progress]);
+
+    if (user) {
+      const saveToFirestore = async () => {
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          await setDoc(userDocRef, {
+            ...progress,
+            updatedAt: new Date().toISOString(),
+          }, { merge: true });
+          setIsCloudSynced(true);
+        } catch (err) {
+          console.error('Error saving progress to Firestore:', err);
+          setIsCloudSynced(false);
+        }
+      };
+
+      saveToFirestore();
+    }
+  }, [progress, user?.uid]);
 
   // Handle Dark Mode class on <html> element
   useEffect(() => {
@@ -309,6 +374,8 @@ export const ProgressProvider: React.FC<{ children: ReactNode }> = ({ children }
         achievements,
         currentDailyContent,
         isLoadingDay,
+        isCloudSynced,
+        isSyncing,
         activeTab,
         setActiveTab,
         fetchDayContent,

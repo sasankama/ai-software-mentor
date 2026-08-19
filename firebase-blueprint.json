@@ -1,0 +1,30 @@
+{
+  "entities": {
+    "users": {
+      "title": "User Progress",
+      "description": "Stores user learning progress, streak, completed days and scores",
+      "type": "object",
+      "properties": {
+        "currentDay": { "type": "number" },
+        "completedDays": { "type": "array", "items": { "type": "number" } },
+        "studyStreak": { "type": "number" },
+        "lastActiveDate": { "type": "string" },
+        "totalStudyHours": { "type": "number" },
+        "completedLessonsCount": { "type": "number" },
+        "quizScores": { "type": "array" },
+        "codingChallengesCompleted": { "type": "number" },
+        "completedProjectTasksCount": { "type": "number" },
+        "currentProjectName": { "type": "string" },
+        "completedProjects": { "type": "array" },
+        "topicsCompleted": { "type": "array" },
+        "githubCommits": { "type": "number" },
+        "weakTopics": { "type": "array" },
+        "dayProgressMap": { "type": "object" },
+        "unlockedBadges": { "type": "array" },
+        "darkMode": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["currentDay", "completedDays"]
+    }
+  }
+}

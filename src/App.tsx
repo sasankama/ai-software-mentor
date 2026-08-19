@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AuthProvider } from './context/AuthContext';
 import { ProgressProvider, useProgress } from './context/ProgressContext';
 import { HeaderNavigation } from './components/HeaderNavigation';
 import { DashboardView } from './components/DashboardView';
@@ -11,11 +12,13 @@ import { ProgressView } from './components/ProgressView';
 import { AchievementsView } from './components/AchievementsView';
 import { SettingsView } from './components/SettingsView';
 import { AiMentorModal } from './components/AiMentorModal';
+import { AuthModal } from './components/AuthModal';
 
 const AppContent: React.FC = () => {
   const { activeTab } = useProgress();
   const [isAiMentorOpen, setIsAiMentorOpen] = useState<boolean>(false);
   const [aiMentorQuery, setAiMentorQuery] = useState<string | undefined>(undefined);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
 
   const handleOpenAiMentor = (initialQuery?: string) => {
     setAiMentorQuery(initialQuery);
@@ -41,7 +44,7 @@ const AppContent: React.FC = () => {
       case 'achievements':
         return <AchievementsView />;
       case 'settings':
-        return <SettingsView />;
+        return <SettingsView onOpenAuthModal={() => setIsAuthModalOpen(true)} />;
       default:
         return <DashboardView />;
     }
@@ -49,7 +52,10 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 transition-colors duration-200 selection:bg-blue-500/30">
-      <HeaderNavigation onOpenAiMentorModal={() => handleOpenAiMentor()} />
+      <HeaderNavigation
+        onOpenAiMentorModal={() => handleOpenAiMentor()}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {renderTabContent()}
@@ -60,14 +66,22 @@ const AppContent: React.FC = () => {
         onClose={() => setIsAiMentorOpen(false)}
         initialQuery={aiMentorQuery}
       />
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
     </div>
   );
 };
 
 export default function App() {
   return (
-    <ProgressProvider>
-      <AppContent />
-    </ProgressProvider>
+    <AuthProvider>
+      <ProgressProvider>
+        <AppContent />
+      </ProgressProvider>
+    </AuthProvider>
   );
 }
+
