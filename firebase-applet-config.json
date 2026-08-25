@@ -1,12 +1,10 @@
 {
-  "projectId": "gen-lang-client-0385545008",
-  "appId": "1:1091620359226:web:ebf056bb63471f3a96b903",
-  "apiKey": "AIzaSyDZ7nqdPzbTAOJgEnuMaABO-Ef-LIebqvs",
-  "authDomain": "gen-lang-client-0385545008.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-aisoftwareengine-dc0f3847-51c6-4077-a2a3-a1986a9ae771",
-  "storageBucket": "gen-lang-client-0385545008.firebasestorage.app",
-  "messagingSenderId": "1091620359226",
-  "measurementId": "",
-  "oAuthClientId": "1091620359226-2o64c4o2ca9m0g8m76itdpkkkqunpma9.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "projectId": "ai-software-mentor",
+  "appId": "1:554818779335:web:93a200c2d464d5ca26a6e2",
+  "apiKey": "AIzaSyCA7YtNzo8UYoc-HJfoC5yLIxFoevBjx5I",
+  "authDomain": "ai-software-mentor.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "ai-software-mentor.firebasestorage.app",
+  "messagingSenderId": "554818779335",
+  "measurementId": "G-NKCG3L81V4"
 }
