@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './AuthContext';
@@ -57,6 +57,9 @@ export const ProgressProvider: React.FC<{ children: ReactNode }> = ({ children }
   const { user } = useAuth();
   const [isCloudSynced, setIsCloudSynced] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  // Prevent the initial local progress state from overwriting the user's cloud data
+  // while Firestore is still loading after sign-in.
+  const cloudReadyUid = useRef<string | null>(null);
 
   const [progress, setProgress] = useState<UserProgress>(() => {
     try {
@@ -75,45 +78,73 @@ export const ProgressProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [isLoadingDay, setIsLoadingDay] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
 
-  // Load user progress from Firestore when authenticated
+  // Load user progress from Firestore when authenticated.
+  // Firestore must become the source of truth before any local state is saved
+  // back to the user's document. This prevents a new device's Day 1/default
+  // state from overwriting an existing Day 2+ cloud state during sign-in.
   useEffect(() => {
+    cloudReadyUid.current = null;
+
     if (!user) {
       setIsCloudSynced(false);
+      setIsSyncing(false);
       return;
     }
 
+    const uid = user.uid;
+    let cancelled = false;
+
     const loadUserProgress = async () => {
       setIsSyncing(true);
+      setIsCloudSynced(false);
+
       try {
-        const userDocRef = doc(db, 'users', user.uid);
+        const userDocRef = doc(db, 'users', uid);
         const snapshot = await getDoc(userDocRef);
+
+        if (cancelled) return;
 
         if (snapshot.exists()) {
           const cloudData = snapshot.data() as UserProgress;
-          setProgress((prev) => ({
+          setProgress({
             ...DEFAULT_PROGRESS,
             ...cloudData,
-          }));
+          });
         } else {
-          // New account or first login: populate Firestore with existing local progress
+          // First login for a new account: migrate the current local progress once.
           await setDoc(userDocRef, {
             ...progress,
             updatedAt: new Date().toISOString(),
           }, { merge: true });
         }
+
+        // Only allow Firestore writes after the initial cloud load/migration
+        // has completed for this exact authenticated user.
+        cloudReadyUid.current = uid;
         setIsCloudSynced(true);
       } catch (err) {
         console.error('Error loading user progress from Firestore:', err);
-        setIsCloudSynced(false);
+        if (!cancelled) {
+          cloudReadyUid.current = null;
+          setIsCloudSynced(false);
+        }
       } finally {
-        setIsSyncing(false);
+        if (!cancelled) {
+          setIsSyncing(false);
+        }
       }
     };
 
     loadUserProgress();
+
+    return () => {
+      cancelled = true;
+    };
   }, [user?.uid]);
 
-  // Save progress changes to localStorage and Firestore
+  // Save progress changes to localStorage and Firestore.
+  // Never write to Firestore until the authenticated user's cloud data
+  // has finished loading.
   useEffect(() => {
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(progress));
@@ -121,7 +152,7 @@ export const ProgressProvider: React.FC<{ children: ReactNode }> = ({ children }
       console.error('Error saving progress to localStorage:', e);
     }
 
-    if (user) {
+    if (user && cloudReadyUid.current === user.uid) {
       const saveToFirestore = async () => {
         try {
           const userDocRef = doc(db, 'users', user.uid);
